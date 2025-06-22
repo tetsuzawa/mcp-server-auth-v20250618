@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPTransport } from '@hono/mcp'
 import { Hono } from 'hono'
+import { z } from 'zod'
 
 
 const app = new Hono()
