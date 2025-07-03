@@ -50,7 +50,9 @@ export function requireBearerAuth({ verifier, requiredScopes = [], resourceMetad
         throw new InvalidTokenError("Invalid Authorization header format, expected 'Bearer TOKEN'");
       }
 
+      console.log("verifing token ...");
       const authInfo = await verifier.verifyAccessToken(token);
+      console.log("success token verified!");
 
       // Check if token has the required scopes (if any)
       if (requiredScopes.length > 0) {
@@ -88,6 +90,7 @@ export function requireBearerAuth({ verifier, requiredScopes = [], resourceMetad
       } else if (error instanceof OAuthError) {
         return c.json(error.toResponseObject(), 400);
       } else {
+        console.log("internal server error!!!!!", error);
         const serverError = new ServerError("Internal Server Error");
         return c.json(serverError.toResponseObject(), 500);
       }

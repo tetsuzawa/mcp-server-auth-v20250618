@@ -9,9 +9,12 @@
     "@hono/mcp": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.13.0",
     "hono": "^4.8.2",
+    "jose": "^6.0.11",
+    "openid-client": "^6.6.2",
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "wrangler": "^4.4.0"
   }

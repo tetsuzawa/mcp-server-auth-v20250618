@@ -1,22 +1,21 @@
-import { Hono } from "hono";
-import { cors } from "hono/cors";
+import { Context } from "hono";
 import { OAuthMetadata, OAuthProtectedResourceMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 
 export function metadataHandler(metadata: OAuthMetadata | OAuthProtectedResourceMetadata) {
-  const app = new Hono();
-
-  // Configure CORS to allow any origin, to make accessible to web-based MCP clients
-  app.use("*", cors());
-
-  // GET endpoint only
-  app.get("/", (c) => {
-    return c.json(metadata, 200);
-  });
-
-  // Return 405 Method Not Allowed for other methods
-  app.all("/", (c) => {
+  return (c: Context) => {
+    // CORS headers
+    c.header("Access-Control-Allow-Origin", "*");
+    c.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "Content-Type");
+    
+    if (c.req.method === "OPTIONS") {
+      return c.body(null, 204);
+    }
+    
+    if (c.req.method === "GET") {
+      return c.json(metadata, 200);
+    }
+    
     return c.text("Method not allowed", 405);
-  });
-
-  return app;
+  };
 }
