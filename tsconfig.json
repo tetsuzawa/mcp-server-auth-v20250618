@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "outDir": "./dist",
     "skipLibCheck": true,
     "lib": [
       "ESNext",
@@ -12,4 +13,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
   },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

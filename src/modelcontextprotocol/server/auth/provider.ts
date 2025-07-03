@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { OAuthRegisteredClientsStore } from "./client";
-import { OAuthClientInformationFull, OAuthTokenRevocationRequest, OAuthTokens } from "../../shared/auth.js";
+import { OAuthClientInformationFull, OAuthTokenRevocationRequest, OAuthTokens } from "../../shared/auth";
 import { AuthInfo } from "./types";
 
 export type AuthorizationParams = {

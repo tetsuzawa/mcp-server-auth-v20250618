@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { OAuthMetadata, OAuthProtectedResourceMetadata } from "../../../shared/auth.js";
+import { OAuthMetadata, OAuthProtectedResourceMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 
 export function metadataHandler(metadata: OAuthMetadata | OAuthProtectedResourceMetadata) {
   const app = new Hono();

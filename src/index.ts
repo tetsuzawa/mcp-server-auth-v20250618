@@ -2,10 +2,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
 import { z } from "zod";
-import { requireBearerAuth } from "./server/auth/middleware/auth";
-import { OAuthMetadata, OAuthProtectedResourceMetadata } from "./shared/auth";
-import { setupAuthServer } from "./server/auth/authServer";
-import { metadataHandler } from "./server/auth/handlers/metadata";
+import { requireBearerAuth } from "./modelcontextprotocol/server/auth/middleware/auth";
+import { OAuthMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
+import { metadataHandler } from "./modelcontextprotocol/server/auth/handlers/metadata";
+import { createProtectedResourceMetadata } from "./metadata.js";
 
 const app = new Hono();
 
@@ -30,7 +30,19 @@ app.get("/", (c) => {
 });
 
 // TODO: use auth0
-const oauthMetadata: OAuthMetadata = setupAuthServer();
+// const oauthMetadata: OAuthMetadata = setupAuthServer();
+const oauthMetadata: OAuthMetadata = {
+  issuer: "https://localhost:3000",
+  authorization_endpoint: "https://localhost:3000/authorize",
+  token_endpoint: "https://localhost:3000/token",
+  introspection_endpoint: "https://localhost:3000/introspect",
+  revocation_endpoint: "https://localhost:3000/revoke",
+  response_types_supported: ["code", "token"],
+  scopes_supported: ["read", "write", "openid"],
+  token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post"],
+  grant_types_supported: ["authorization_code", "client_credentials", "refresh_token"],
+  code_challenge_methods_supported: ["S256", "plain"],
+};
 
 const tokenVerifier = {
   verifyAccessToken: async (token: string) => {
@@ -69,6 +81,7 @@ const tokenVerifier = {
     // Convert the response to AuthInfo format
 
     // TODO: 本実装
+    // これはハードコード
     return {
       token,
       clientId: "my-client-id",
@@ -108,62 +121,3 @@ app.all("/mcp", async (c) => {
 });
 
 export default app;
-
-// const checkIssuerUrl = (issuer: URL): void => {
-//   // Technically RFC 8414 does not permit a localhost HTTPS exemption, but this will be necessary for ease of testing
-//   if (
-//     issuer.protocol !== "https:" &&
-//     issuer.hostname !== "localhost" &&
-//     issuer.hostname !== "127.0.0.1"
-//   ) {
-//     throw new Error("Issuer URL must be HTTPS");
-//   }
-//   if (issuer.hash) {
-//     throw new Error(`Issuer URL must not have a fragment: ${issuer}`);
-//   }
-//   if (issuer.search) {
-//     throw new Error(`Issuer URL must not have a query string: ${issuer}`);
-//   }
-// };
-
-export function createProtectedResourceMetadata(
-  options: AuthMetadataOptions
-): OAuthProtectedResourceMetadata {
-  // checkIssuerUrl(new URL(options.oauthMetadata.issuer));
-  return {
-    resource: options.resourceServerUrl.href,
-
-    authorization_servers: [options.oauthMetadata.issuer],
-
-    scopes_supported: options.scopesSupported,
-    resource_name: options.resourceName,
-    resource_documentation: options.serviceDocumentationUrl?.href,
-  };
-}
-export type AuthMetadataOptions = {
-  /**
-   * OAuth Metadata as would be returned from the authorization server
-   * this MCP server relies on
-   */
-  oauthMetadata: OAuthMetadata;
-
-  /**
-   * The url of the MCP server, for use in protected resource metadata
-   */
-  resourceServerUrl: URL;
-
-  /**
-   * The url for documentation for the MCP server
-   */
-  serviceDocumentationUrl?: URL;
-
-  /**
-   * An optional list of scopes supported by this MCP server
-   */
-  scopesSupported?: string[];
-
-  /**
-   * An optional resource name to display in resource metadata
-   */
-  resourceName?: string;
-};
