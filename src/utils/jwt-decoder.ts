@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify, decodeJwt, decodeProtectedHeader } from 'jose';
-import type { JWTPayload, JWTHeaderParameters } from 'jose';
+import type { JWTPayload, ProtectedHeaderParameters } from 'jose';
 
 interface Auth0Config {
   domain: string;
@@ -7,7 +7,7 @@ interface Auth0Config {
 }
 
 interface DecodedToken {
-  header: JWTHeaderParameters;
+  header: ProtectedHeaderParameters;
   payload: JWTPayload;
 }
 
@@ -111,44 +111,4 @@ export class Auth0JWTDecoder {
 
     return customClaims;
   }
-}
-
-// 使用例
-if (require.main === module) {
-  // コマンドライン引数からトークンを取得
-  const token = process.argv[2];
-  const domain = process.env.AUTH0_DOMAIN || 'your-domain.auth0.com';
-  const audience = process.env.AUTH0_AUDIENCE;
-
-  if (!token) {
-    console.error('Usage: ts-node jwt-decoder.ts <JWT_TOKEN>');
-    process.exit(1);
-  }
-
-  const decoder = new Auth0JWTDecoder({ domain, audience });
-
-  console.log('=== JWT Decode (without verification) ===');
-  try {
-    const decoded = decoder.decode(token);
-    console.log('Header:', JSON.stringify(decoded.header, null, 2));
-    console.log('Payload:', JSON.stringify(decoded.payload, null, 2));
-    console.log('Expired:', decoder.isExpired(token));
-    
-    // カスタムクレームの表示
-    const customClaims = decoder.getCustomClaims(token);
-    if (Object.keys(customClaims).length > 0) {
-      console.log('Custom Claims:', JSON.stringify(customClaims, null, 2));
-    }
-  } catch (error) {
-    console.error('Decode error:', error);
-  }
-
-  console.log('\n=== JWT Verify (with verification) ===');
-  decoder.verify(token)
-    .then(payload => {
-      console.log('Verified payload:', JSON.stringify(payload, null, 2));
-    })
-    .catch(error => {
-      console.error('Verification error:', error);
-    });
 }

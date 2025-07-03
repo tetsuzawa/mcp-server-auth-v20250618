@@ -51,6 +51,9 @@ export function requireBearerAuth({ verifier, requiredScopes = [], resourceMetad
       }
 
       console.log("verifing token ...");
+      console.log("Token length:", token.length);
+      console.log("Token parts:", token.split('.').length);
+      
       const authInfo = await verifier.verifyAccessToken(token);
       console.log("success token verified!");
 

@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
-import { logger } from 'hono/logger'
+import { logger } from "hono/logger";
 import { z } from "zod";
 import { requireBearerAuth } from "./modelcontextprotocol/server/auth/middleware/auth";
 import { OAuthMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
@@ -28,17 +28,21 @@ app.use(async (c, next) => {
   c.req.raw.headers.forEach((value, key) => {
     reqHeaders[key] = value;
   });
-  console.log('Request Headers:', JSON.stringify(reqHeaders, null, 2));
+  console.log("Request Headers:", JSON.stringify(reqHeaders, null, 2));
 
   // リクエストボディをログ出力
-  const contentType = c.req.header('content-type');
-  if (contentType && (contentType.includes('application/json') || contentType.includes('text/plain'))) {
+  const contentType = c.req.header("content-type");
+  if (
+    contentType &&
+    (contentType.includes("application/json") ||
+      contentType.includes("text/plain"))
+  ) {
     try {
       // bodyをバッファリングして再利用可能にする
       const arrayBuffer = await c.req.arrayBuffer();
       const bodyText = new TextDecoder().decode(arrayBuffer);
-      console.log('Request Body:', bodyText);
-      
+      console.log("Request Body:", bodyText);
+
       // 新しいRequestオブジェクトを作成してbodyを再度読めるようにする
       const newRequest = new Request(c.req.raw.url, {
         method: c.req.raw.method,
@@ -47,7 +51,7 @@ app.use(async (c, next) => {
       });
       c.req.raw = newRequest;
     } catch (e) {
-      console.log('Request Body: (Unable to read body)');
+      console.log("Request Body: (Unable to read body)");
     }
   }
 
@@ -62,27 +66,30 @@ app.use(async (c, next) => {
     c.res.headers.forEach((value, key) => {
       resHeaders[key] = value;
     });
-    console.log('Response Headers:', JSON.stringify(resHeaders, null, 2));
+    console.log("Response Headers:", JSON.stringify(resHeaders, null, 2));
   };
 
   c.json = (object: any, ...args: any[]) => {
     const result = originalJson(object, ...args);
     logResponseHeaders();
-    console.log('Response Body (JSON):', JSON.stringify(object));
+    console.log("Response Body (JSON):", JSON.stringify(object));
     return result;
   };
 
   c.text = (text: string, ...args: any[]) => {
     const result = originalText(text, ...args);
     logResponseHeaders();
-    console.log('Response Body (Text):', text);
+    console.log("Response Body (Text):", text);
     return result;
   };
 
   c.html = (html: string, ...args: any[]) => {
     const result = originalHtml(html, ...args);
     logResponseHeaders();
-    console.log('Response Body (HTML):', html.substring(0, 500) + (html.length > 500 ? '...' : ''));
+    console.log(
+      "Response Body (HTML):",
+      html.substring(0, 500) + (html.length > 500 ? "..." : "")
+    );
     return result;
   };
 
@@ -124,62 +131,85 @@ const createTokenVerifier = (workerUrl: string, env: Env) => {
   const oauthMetadata = createOAuthMetadata(env);
   const JWKS = createRemoteJWKSet(new URL(oauthMetadata.jwks_uri as string));
   const audience = env.AUTH0_AUDIENCE || getResourceServerUrl(workerUrl, env);
-  
+
   return {
-  verifyAccessToken: async (token: string) => {
-    try {
-      // JWTの検証とデコード
-      console.log("JWT検証開始:", {
-        issuer: oauthMetadata.issuer,
-        audience: audience,
-        tokenPrefix: token.substring(0, 50) + "..."
-      });
-      
-      const { payload } = await jwtVerify(token, JWKS, {
-        // 発行者の検証
-        issuer: oauthMetadata.issuer,
-        // Audienceの検証（RFC 8707準拠）
-        audience: audience,
-      });
-      
-      console.log("JWT検証成功:", {
-        sub: payload.sub,
-        aud: payload.aud,
-        iss: payload.iss,
-        exp: payload.exp
-      });
+    verifyAccessToken: async (token: string) => {
+      try {
+        // JWTの検証とデコード
+        console.log("JWT検証開始:", {
+          issuer: oauthMetadata.issuer,
+          audience: audience,
+          tokenPrefix: token.substring(0, 50) + "...",
+        });
 
-      // 必須クレームの確認
-      if (!payload.sub) {
-        throw new Error("Subject (sub) claim is missing");
+        const { payload } = await jwtVerify(token, JWKS, {
+          // 発行者の検証
+          issuer: oauthMetadata.issuer,
+          // Audienceの検証（RFC 8707準拠）
+          audience: audience,
+          // アルゴリズムの明示的な指定
+          algorithms: ["RS256"],
+        });
+
+        console.log("JWT検証成功:", {
+          sub: payload.sub,
+          aud: payload.aud,
+          iss: payload.iss,
+          exp: payload.exp,
+        });
+
+        // 必須クレームの確認
+        if (!payload.sub) {
+          throw new Error("Subject (sub) claim is missing");
+        }
+
+        // スコープの解析（Auth0では文字列として格納される）
+        const scopes =
+          typeof payload.scope === "string" ? payload.scope.split(" ") : [];
+
+        // クライアントIDの取得（Auth0ではazpまたはclient_idクレーム）
+        const clientId = (payload.azp ||
+          payload.client_id ||
+          payload.sub) as string;
+
+        // 有効期限の取得（JWTのexpクレームから）
+        const expiresAt = payload.exp
+          ? payload.exp * 1000
+          : Date.now() + 3600000;
+
+        return {
+          token,
+          clientId,
+          scopes,
+          expiresAt,
+        };
+      } catch (error) {
+        // エラーメッセージを適切にフォーマット
+        console.error("JWT検証エラー:", error);
+
+        // jose特有のエラーメッセージを詳細に出力
+        if (error instanceof Error) {
+          console.error("エラー詳細:", {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          });
+
+          // "Invalid Compact JWS"エラーの場合、トークンの形式を詳細に調査
+          if (error.message.includes("Invalid Compact JWS")) {
+            console.error("Invalid Compact JWS detected. Token details:", {
+              tokenLength: token.length,
+              tokenParts: token.split(".").length,
+              firstChars: token.substring(0, 20) + "...",
+              lastChars: "..." + token.substring(token.length - 20),
+            });
+          }
+
+          throw new Error(`Invalid or expired token: ${error.message}`);
+        }
+        throw new Error("Invalid or expired token");
       }
-
-      // スコープの解析（Auth0では文字列として格納される）
-      const scopes = typeof payload.scope === "string" 
-        ? payload.scope.split(" ") 
-        : [];
-
-      // クライアントIDの取得（Auth0ではazpまたはclient_idクレーム）
-      const clientId = (payload.azp || payload.client_id || payload.sub) as string;
-
-      // 有効期限の取得（JWTのexpクレームから）
-      const expiresAt = payload.exp ? payload.exp * 1000 : Date.now() + 3600000;
-
-      return {
-        token,
-        clientId,
-        scopes,
-        expiresAt,
-      };
-    } catch (error) {
-      // エラーメッセージを適切にフォーマット
-      console.error("JWT検証エラー:", error);
-      if (error instanceof Error) {
-        throw new Error(`Invalid or expired token: ${error.message}`);
-      }
-      throw new Error("Invalid or expired token");
-    }
-  },
+    },
   };
 };
 
@@ -189,7 +219,7 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
   const oauthMetadata = createOAuthMetadata(env);
   const serverUrl = getResourceServerUrl(workerUrl, env);
   const serverName = env.MCP_SERVER_NAME || DEFAULT_CONFIG.MCP_SERVER_NAME;
-  
+
   return metadataHandler(
     createProtectedResourceMetadata({
       oauthMetadata,
@@ -213,7 +243,7 @@ app.use("/mcp", async (c, next) => {
     requiredScopes: ["mcp:tools"],
     resourceMetadataUrl: `${workerUrl}/.well-known/oauth-protected-resource`,
   });
-  
+
   return await bearerAuthMiddleware(c, next);
 });
 
