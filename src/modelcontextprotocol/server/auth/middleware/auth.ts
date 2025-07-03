@@ -69,7 +69,7 @@ export function requireBearerAuth({ verifier, requiredScopes = [], resourceMetad
       }
 
       // Check if the token is expired
-      if (!!authInfo.expiresAt && authInfo.expiresAt < Date.now() / 1000) {
+      if (!!authInfo.expiresAt && authInfo.expiresAt < Date.now()) {
         throw new InvalidTokenError("Token has expired");
       }
 

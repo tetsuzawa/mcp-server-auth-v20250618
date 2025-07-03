@@ -9,6 +9,7 @@ import { metadataHandler } from "./modelcontextprotocol/server/auth/handlers/met
 import { createProtectedResourceMetadata } from "./metadata.js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { DEFAULT_CONFIG, createAuth0Metadata } from "./config.js";
+import { jwtDecode } from "jwt-decode";
 
 type Env = {
   WORKER_URL: string;
@@ -29,6 +30,19 @@ app.use(async (c, next) => {
     reqHeaders[key] = value;
   });
   console.log("Request Headers:", JSON.stringify(reqHeaders, null, 2));
+
+  // Authorizationヘッダーの詳細解析
+  const authHeader = c.req.header("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.substring(7);
+    const tokenParts = token.split(".");
+    console.log("Token Analysis:", {
+      parts: tokenParts.length,
+      isJWS: tokenParts.length === 3,
+      isJWE: tokenParts.length === 5,
+      header: tokenParts[0] ? JSON.parse(atob(tokenParts[0])) : null
+    });
+  }
 
   // リクエストボディをログ出力
   const contentType = c.req.header("content-type");
@@ -136,11 +150,16 @@ const createTokenVerifier = (workerUrl: string, env: Env) => {
     verifyAccessToken: async (token: string) => {
       try {
         // JWTの検証とデコード
-        console.log("JWT検証開始:", {
+        console.log("JWT検証開始:", JSON.stringify({
           issuer: oauthMetadata.issuer,
           audience: audience,
           tokenPrefix: token.substring(0, 50) + "...",
-        });
+        }, null, 0));
+
+        const decoded = jwtDecode(token);
+
+        console.log(decoded);
+
 
         const { payload } = await jwtVerify(token, JWKS, {
           // 発行者の検証
@@ -240,7 +259,7 @@ app.use("/mcp", async (c, next) => {
 
   const bearerAuthMiddleware = requireBearerAuth({
     verifier: tokenVerifier,
-    requiredScopes: ["mcp:tools"],
+    requiredScopes: [],
     resourceMetadataUrl: `${workerUrl}/.well-known/oauth-protected-resource`,
   });
 
