@@ -1,11 +1,11 @@
 export const DEFAULT_CONFIG = {
   // Auth0設定
   AUTH0_ISSUER_URL: "https://dev-g7d6jxky7ire758q.us.auth0.com",
-  AUTH0_AUDIENCE: "http://localhost:3000/mcp",
+  AUTH0_AUDIENCE: "mcp-server-auth-v20250618.tetsu-varmos.workers.dev",
   
   // MCP サーバー設定
-  MCP_SERVER_URL: "http://localhost:3000/mcp",
-  MCP_SERVER_NAME: "mcp-server",
+  MCP_SERVER_URL: "https://mcp-server-auth-v20250618.tetsu-varmos.workers.dev/mcp",
+  MCP_SERVER_NAME: "mcp-server-auth-v20250618.tetsu-varmos.workers.dev",
 } as const;
 
 // Auth0 OAuth メタデータ
@@ -19,6 +19,7 @@ export const createAuth0Metadata = (issuerUrl: string) => ({
   jwks_uri: `${issuerUrl}/.well-known/jwks.json`,
   registration_endpoint: `${issuerUrl}/oidc/register`,
   revocation_endpoint: `${issuerUrl}/oauth/revoke`,
+  introspection_endpoint: `${issuerUrl}/oauth/introspect`,
   response_types_supported: ["code", "token"],
   scopes_supported: ["openid", "profile", "offline_access", "name", "given_name", "family_name", "nickname", "email", "email_verified", "picture", "created_at", "identities", "phone", "address"],
   response_modes_supported: ["query", "fragment", "form_post"],

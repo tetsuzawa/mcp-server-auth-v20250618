@@ -64,7 +64,8 @@ export function requireBearerAuth({ verifier, requiredScopes = [], resourceMetad
         );
 
         if (!hasAllScopes) {
-          throw new InsufficientScopeError("Insufficient scope");
+          const missingScopes = requiredScopes.filter(scope => !authInfo.scopes.includes(scope));
+          throw new InsufficientScopeError(`Insufficient scope. Required: ${requiredScopes.join(' ')}, Missing: ${missingScopes.join(' ')}`);
         }
       }
 
@@ -83,9 +84,10 @@ export function requireBearerAuth({ verifier, requiredScopes = [], resourceMetad
         c.header("WWW-Authenticate", wwwAuthValue);
         return c.json(error.toResponseObject(), 401);
       } else if (error instanceof InsufficientScopeError) {
+        const scopeInfo = requiredScopes.length > 0 ? `, scope="${requiredScopes.join(' ')}"` : '';
         const wwwAuthValue = resourceMetadataUrl
-          ? `Bearer error="${error.errorCode}", error_description="${error.message}", resource_metadata="${resourceMetadataUrl}"`
-          : `Bearer error="${error.errorCode}", error_description="${error.message}"`;
+          ? `Bearer error="${error.errorCode}", error_description="${error.message}"${scopeInfo}, resource_metadata="${resourceMetadataUrl}"`
+          : `Bearer error="${error.errorCode}", error_description="${error.message}"${scopeInfo}`;
         c.header("WWW-Authenticate", wwwAuthValue);
         return c.json(error.toResponseObject(), 403);
       } else if (error instanceof ServerError) {
