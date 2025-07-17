@@ -53,7 +53,8 @@ const createOAuthMetadata = (env: Env): OAuthMetadata => {
 
 // リソースサーバーの識別子（audienceとして使用）
 const getResourceServerUrl = (workerUrl: string, env: Env) => {
-  return env.MCP_SERVER_URL || `${workerUrl}/mcp`;
+  // return env.MCP_SERVER_URL || `${workerUrl}/mcp`;
+  return env.MCP_SERVER_URL || `${workerUrl}`;
 };
 
 const createTokenVerifier = (workerUrl: string, env: Env) => {
@@ -172,6 +173,7 @@ const createTokenVerifier = (workerUrl: string, env: Env) => {
 
         if (isJWT) {
           // JWTの場合
+          console.log("JWT token detected");
           try {
             return await verifyJWT(token);
           } catch (jwtError) {
@@ -179,6 +181,7 @@ const createTokenVerifier = (workerUrl: string, env: Env) => {
             return await verifyOpaqueToken(token);
           }
         } else {
+          console.log("opaque token detected");
           // JWT形式でない場合はopaque tokenとして扱う
           return await verifyOpaqueToken(token);
         }
